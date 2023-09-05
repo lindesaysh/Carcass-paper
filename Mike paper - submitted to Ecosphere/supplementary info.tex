@@ -17,13 +17,17 @@
 % \maketitle
 
 % \textbf{Check over and tidy up}
-
-
-\documentclass[suppldata]{interact}
+\documentclass[letterpaper]{interact}
 
 %\usepackage{epstopdf}% To incorporate .eps illustrations using PDFLaTeX, etc.
 \usepackage[caption=false]{subfig}% Support for small, `sub' figures and tables
-%\usepackage[nolists,tablesfirst]{endfloat}% To `separate' figures and tables from text if required
+%\usepackage[nolists,tablesfirst]{endfloat}% To `separate' figures and tables from text if required - add endfloat to curly brackets for journal
+
+\usepackage[doublespacing]{setspace}% To produce a `double spaced' document if required
+%\setlength\parindent{24pt}% To increase paragraph indentation when line spacing is doubled
+\setlength\bibindent{2em}% To increase hanging indent in bibliography when line spacing is doubled
+
+%\documentclass[suppldata]{interact}
 
 \usepackage[doublespacing]{setspace}% To produce a `double spaced' document if required
 \setlength\parindent{24pt}% To increase paragraph indentation when line spacing is doubled
@@ -50,12 +54,20 @@
 \usepackage{hyperref}
 \usepackage{makecell}
 \usepackage{longtable}
+\usepackage[document]{ragged2e}
+\usepackage{lineno}
+%\linenumbers
+
+\renewcommand{\figurename}{Figure}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\thetable}{S\arabic{table}}
 
 \begin{document}
 
 %\articletype{Original Research Article}% Specify the article type or omit as appropriate
 
-\title{Supplementary Material for ``Automated surface feature selection using SALSA2D: An illustration using Elephant Mortality data in Etosha National Park."}
+\title{Appendix S1: Supplementary Material for ``Automated surface feature selection using SALSA2D: An illustration using Elephant Mortality data in Etosha National Park." \\ Ecosphere}
+
 
 \author{
 \name{L.A.S Scott-Hayward\textsuperscript{a}\thanks{CONTACT L.A.S. Scott-Hayward. Email: lass@st-andrews.ac.uk}, M.L. Mackenzie\textsuperscript{a}, C.G. Walker\textsuperscript{b}, G. Shatumbu\textsuperscript{c}, W. Kilian\textsuperscript{c} and P. du Preez\textsuperscript{d}}
@@ -78,8 +90,8 @@
 
 \begin{figure}[!htb]
 \centering
-\caption{Figure showing the knot locations (blue crosses) and the colour shows the nearest knot on the pseudo absence grid.}
 \includegraphics[width=0.9\linewidth]{suppimages/knotdatablocks}
+\caption{Figure showing the knot locations (blue crosses) and the colour shows the nearest knot on the pseudo absence grid.}
 \label{fig:blocks}
 \end{figure}
 
@@ -173,8 +185,8 @@ Figure \ref{fig:resolutionconvergence} shows the log-likelihood scores for the d
 
 \begin{figure}[!htb]
 \centering
-\caption{Figure showing the convergence of the log-likelihood for for different spatial resolutions across multiple SALSA2D parameterisations.}
 \includegraphics[width=0.9\linewidth]{suppimages/ppconverge.png}
+\caption{Figure showing the convergence of the log-likelihood for for different spatial resolutions across multiple SALSA2D parameterisations.}
 \label{fig:resolutionconvergence}
 \end{figure}
 
@@ -191,15 +203,15 @@ The following figures show the best models from the two different methodological
 
 \begin{figure}[!htb]
 \centering
-\caption{Figure showing fitted intensity surfaces for the four SALSA2D models selected using log-likelihood.}
 \includegraphics[width=0.9\linewidth]{suppimages/mrseapredplots_4methods.png}
+\caption{Figure showing fitted intensity surfaces for the four SALSA2D models selected using log-likelihood.}
 \label{fig:salsaloglik}
 \end{figure}
 
 \begin{figure}[!htb]
 \centering
-\caption{Figure showing the best model averaged outputs from the four different parametrisations and selected using AIC$_c$ model weights.}
 \includegraphics[width=0.9\linewidth]{suppimages/modelavgpredplots.png}
+\caption{Figure showing the best model averaged outputs from the four different parametrisations and selected using AIC$_c$ model weights.}
 \label{fig:modelavgall}
 \end{figure}
 
@@ -207,10 +219,12 @@ The following figures show the best models from the two different methodological
 
 
 
-\subsection{SALSA2D outputs}
+\subsection*{SALSA2D outputs}
 
+%\begin{table}[!htb]
 \begin{table}[!htb]
-\begin{longtable}{|l|l|r|r|r|r|r|}
+\renewcommand{\arraystretch}{0.5}
+\begin{tabular}{|l|l|r|r|r|r|r|}
 \hline
 Distance Type & Basis & \makecell[r]{Start \\Knots} & \makecell[l]{End \\Knots} & LogLik & BIC & \makecell[l]{Time \\(min)}\\
 \hline
@@ -262,13 +276,13 @@ Euclidean & Gaussian & 55 & 47 & -1452.3 & 3337.4 & 38.1\\
 \hline
 Euclidean & Gaussian & 60 & 47 & -1451.6 & 3336.2 & 103.9\\
 \hline
-\end{longtable}
-\caption{SALSA2D outputs for the Euclidean distance models}
-\label{tab:outputseuc}
+\end{tabular}
+\caption{SALSA2D outputs for the Euclidean distance models\label{tab:outputseuc}}
 \end{table}
+%\end{table}
 
 \begin{table}[!htb]
-\begin{longtable}{|l|l|l|r|r|r|r|r|}
+\begin{tabular}{|l|l|l|r|r|r|r|r|}
 \hline
   & Distance Type & Basis & \makecell[r]{Start \\Knots} & \makecell[l]{End \\Knots} & LogLik & BIC & \makecell[l]{Time \\(min)}\\
 \hline
@@ -320,7 +334,7 @@ Euclidean & Gaussian & 60 & 47 & -1451.6 & 3336.2 & 103.9\\
 \hline
 48 & Geodesic & Gaussian & 60 & 33 & -1411.8 & 3127.5 & 26.6\\
 \hline
-\end{longtable}
+\end{tabular}
 \caption{SALSA2D outputs for the Geodesic models}
 \label{tab:outputsgeo}
 \end{table}
@@ -387,7 +401,7 @@ Euclidean & Exponential & 40 & 27 & -1407.7 & 3064.1 & 46.7\\
 
 \clearpage
 
-\subsection{Model Averaged Selected Models}
+\subsection*{Model Averaged Selected Models}
 
 \begin{itemize}
     \item $k$ = number of knots
@@ -453,7 +467,7 @@ $gausgeo
 
 \section{Full Analysis Covariate Information}
 
-\subsection{Rainfall calculation} 
+\subsection*{Rainfall calculation} 
 
 Fit a high dimensional smooth term to 156 locations of annual rainfall from 1999 to 2015 (2016/17 unavailable at the time of modelling) to interpolate values for the presence locations and pseudo-absence grid.
 
@@ -469,8 +483,8 @@ The results of the interpolation model are shown in Figure \ref{fig:covariates}
 
 \begin{figure}[!htb]
 \centering
-\caption{Figure showing the covariate data in the study region. Distance to water (top), distance to roads (centre) and interpolated annual rainfall (bottom).}
 \includegraphics[width=0.9\linewidth]{suppimages/Mike_covardata.png}
+\caption{Figure showing the covariate data in the study region. Distance to water (top), distance to roads (centre) and interpolated annual rainfall (bottom).}
 \label{fig:covariates}
 \end{figure}
 
