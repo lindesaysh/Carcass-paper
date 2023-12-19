@@ -12,8 +12,8 @@ knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE, dev="png")
 
 ```{r, warning=FALSE, message=FALSE}
 #devtools::install_git("https://github.com/lindesaysh/MRSea.git")
-devtools::load_all('C:/Users/lass/Documents/GitHub/MRSea')
-#require(MRSea)
+#devtools::load_all('C:/Users/lindesay/Documents/GitHub/MRSea')
+require(MRSeaPP)
 require(splancs)
 require(ggplot2)
 require(fields)
@@ -23,6 +23,11 @@ library(sp)
 library(rgdal)
 require(dplyr)
 computer='pc'
+```
+
+
+```{r}
+#fencepoly<-read.csv('../data/fencepoly.csv')
 ```
 
 ```{r, results="hide"}
@@ -69,53 +74,13 @@ ggplot(dat.pres) + geom_point(aes(x.pos, y.pos), alpha=1/2) + facet_wrap(~month)
 ```
 
 ```{r}
-# create boundary listing so that quad points created in correct area
-Z<-owin(poly=list(fence.list, largepan.list))
-
-x<-dat$x.pos
-y<-dat$y.pos
-
-P<-ppp(x, y, poly=list(fence.list, largepan.list))
-plot(P)
-```
-
-```{r}
-dummyQpts<-quadscheme(P, eps=2)$dummy
-dpts<-data.frame(x.pos=dummyQpts$x, y.pos=dummyQpts$y)
-plot(dummyQpts)
-plot(P, add = TRUE, cex = 0.5)
-```
-
-```{r}
-analysisdat<-rbind(data.frame(dat, response=1), data.frame(dpts, response=0))
-kga<- data.frame(x.pos=dat$x.pos, y.pos=dat$y.pos)
-set.seed(1234)
-kgb<- getKnotgrid(coordData = dpts, numKnots = 50, plot = FALSE)
-kg<-rbind(kga, kgb)
-duplicatedid<-which(duplicated(kga)==TRUE)
-if(length(duplicatedid)>0){ kg<-kg[-duplicatedid,]}
-```
-
-```{r}
-distMats<-makeDists(cbind(analysisdat$x.pos, analysisdat$y.pos), kg)
-
-```
-
-
-```{r}
-p.wt<-rep(1e-6, nrow(analysisdat))
-p.wt[analysisdat$response==0]<-summary(dummyQpts)$window$area/sum(analysisdat$response==0)
-# must have column in data called pp.wts
-analysisdat$pp.wts<-p.wt
-```
-
-
-# Data prep
-
-```{r}
-
-path2020<-"C:\\Users\\lass\\OneDrive - University of St Andrews\\papers\\papers\\CarcassSALSApaper\\August2020\\data\\shapefiles"
+#pathmac<-"/Users/lass/Dropbox/Research/Africa/rhino"
+# pathpc1<-"C:\\Users\\lindesay\\Dropbox\\Research\\Africa\\Hornbill\\October2018\\shapefiles"
+# pathpc2<-"D:\\filescopied\\Etosha GIS"
+# pathpc3<-"D:\\lindesay\\Etosha_masterfiles\\ConInfo\\Gis\\Arcview_Data\\0.Protected_Area\\Etosha\\Roads"
+path2020<-"C:\\Users\\lindesay\\OneDrive - University of St Andrews\\papers\\papers\\CarcassSALSApaper\\August2020\\data\\shapefiles"
 if(computer=='pc'){path1=path2020; path2 = path2020; path3=path2020}
+#if(computer=='mac'){path1=path2=pathmac}
 ```
 
 
@@ -141,14 +106,135 @@ tracksUTM <- spTransform(tracks, CRS("+proj=utm +zone=33 ellps=WGS84"))
 tracks_fortify<-fortify(tracksUTM)
 ```
 
+
+```{r}
+rawplot <- ggplot() +
+  theme_bw() + coord_equal() +
+  labs(x='Easting (Km)', y='Northing (Km)') +
+ scale_shape(guide=FALSE)+
+  geom_polygon(data=data.frame(largepan), aes(x=x, y=y), fill='lightblue')+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
+geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='firebrick', size=0.3, alpha=0.5) +
+  geom_point(data=waterholelocs, aes(coords.x1/1000, coords.x2/1000), colour = 'blue',shape=4) +
+  geom_point(data = filter(dat.pres, code %in% c("BUR", "DES", "DIS", "DR", "LP", "LPS", "MIS", "OA", "POA", "SH", "STR", "Unk")),
+             aes(x=x.pos/1000, y=y.pos/1000), alpha= 1/3, size=2, shape=16) +
+  geom_point(data = filter(dat.pres,  code %in% c("ANP", "ANS")),
+             aes(x=x.pos/1000, y=y.pos/1000), colour="darkgreen", shape=17, size=2, alpha=1/3) +
+   
+geom_polygon(data=fence, aes(x=x.pos, y=y.pos), fill=NA, colour='black')  
+  
+#geom_point(data=waterholelocs,aes(x=coords.x1, y=coords.x2), colour='blue', shape=1)
+png('../results/rawdataplot_anth.png', height=900, width=2000, res=300)
+rawplot 
+dev.off()
+```
+
+
+```{r}
+ggplot() +
+  geom_point(data=waterholelocs, aes(x=coords.x1/1000,y=coords.x2/1000), colour="purple") + 
+  geom_point(data = filter(dat.pres, code %in% c("ANP", "ANS")),
+             aes(x=x.pos/1000, y=y.pos/1000), alpha= 1/5) +
+  theme_bw() +
+  labs(x='Easting (Km)', y='Northing (Km)') +
+  geom_polygon(data=data.frame(largepan), aes(x=x, y=y), fill='lightyellow')+
+  geom_path(data=fences_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.5)+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ coord_equal() 
+```
+
+
+```{r}
+ggplot() +
+  geom_point(data=waterholelocs, aes(x=coords.x1/1000,y=coords.x2/1000), colour="purple") + 
+  geom_point(data = filter(dat.pres, code %in% c("Unk")),
+             aes(x=x.pos/1000, y=y.pos/1000), alpha= 1/5) +
+  theme_bw() +
+  labs(x='Easting (Km)', y='Northing (Km)') +
+  geom_polygon(data=data.frame(largepan), aes(x=x, y=y), fill='lightyellow') +
+  geom_path(data=fences_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.5) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + coord_equal() 
+```
+
+
+```{r}
+# create boundary listing so that quad points created in correct area
+Z<-owin(poly=list(fence.list, largepan.list))
+
+x<-dat$x.pos
+y<-dat$y.pos
+
+P<-ppp(x, y, poly=list(fence.list, largepan.list))
+plot(P)
+```
+
+```{r}
+# datcomb<- read.csv("../data/datcomb.csv", header=TRUE)
+# dat.pres<-datcomb[datcomb$response==1,]
+# predgrid<- read.csv("../data/predgrid.csv", header=TRUE)
+```
+
+```{r}
+dummyQpts<-quadscheme(P, eps=2)$dummy
+dpts<-data.frame(x.pos=dummyQpts$x, y.pos=dummyQpts$y)
+plot(dummyQpts)
+plot(P, add = TRUE, cex = 0.5)
+```
+
+```{r}
+analysisdat<-rbind(data.frame(dat, response=1), data.frame(dpts, response=0))
+#kg<-  getKnotgrid(analysisdat[,1:2], plot = FALSE)
+kga<- data.frame(x.pos=dat$x.pos, y.pos=dat$y.pos)
+set.seed(1234)
+kgb<- getKnotgrid(coordData = dpts, numKnots = 50, plot = FALSE)
+kg<-rbind(kga, kgb)
+duplicatedid<-which(duplicated(kga)==TRUE)
+if(length(duplicatedid)>0){ kg<-kg[-duplicatedid,]}
+```
+
+```{r}
+distMats<-makeDists(cbind(analysisdat$x.pos, analysisdat$y.pos), kg)
+
+# kg<-  cbind(datcomb$x.pos, datcomb$y.pos)
+# duplicatedid<-which(duplicated(kg)==TRUE)
+# kg<-kg[-duplicatedid,]
+# distMats<-makeDists(cbind(datcomb$x.pos, datcomb$y.pos), kg)
+```
+
+```{r}
+# # load geodesic matrix and reduce to remove duplicated knots
+# load('data/knot2knotDist.Robj')
+# d2k<-k2k[, -duplicatedid]
+# k2k<-k2k[-duplicatedid, -duplicatedid]
+# 
+# distMats_Geo<-list(dataDist= d2k, knotDist=k2k)
+```
+
+```{r}
+p.wt<-rep(1e-6, nrow(analysisdat))
+p.wt[analysisdat$response==0]<-summary(dummyQpts)$window$area/sum(analysisdat$response==0)
+# must have column in data called pp.wts
+analysisdat$pp.wts<-p.wt
+```
+
+
+# Data prep
+
 Calculate the distance to the nearest water hole:
 
 ```{r}
 waterholedists<-makeDists(cbind(analysisdat$x.pos, analysisdat$y.pos), knotcoords = waterholes@coords/1000,knotmat = FALSE)
 
 analysisdat$distwater_km<-apply(waterholedists$dataDist, 1, min)
-
+#analysisdat$distwater_km<-ifelse(analysisdat$distwater_km>30, 30, analysisdat$distwater_km)
 ```
+
+
+<!-- add column to prediction data too.  -->
+<!-- ```{r} -->
+<!-- waterholedists<-makeDists(cbind(predgrid$x.pos, predgrid$y.pos), knotcoords = waterholes@coords,knotmat = FALSE) -->
+<!-- predgrid$distwater_m<-apply(waterholedists$dataDist, 1, min)/1000 -->
+<!-- predgrid$distwater_m<-ifelse(predgrid$distwater_m>30, 30, predgrid$distwater_m) -->
+<!-- ``` -->
 
 
 ```{r}
@@ -162,8 +248,15 @@ points(analysisdat$x.pos[analysisdat$response==1], analysisdat$y.pos[analysisdat
 require(rgeos)
 spts<- SpatialPoints(cbind(analysisdat$x.pos, analysisdat$y.pos)*1000)
 analysisdat$dist2road<-apply(gDistance(spts, roadsUTM, byid=TRUE), 2, min)/1000
-
+#analysisdat$dist2road<-ifelse(analysisdat$dist2road>10, 10, analysisdat$dist2road)
 ```
+
+<!-- and for the prediction grid -->
+<!-- ```{r} -->
+<!-- spts2<- SpatialPoints(cbind(predgrid$x.pos, predgrid$y.pos)) -->
+<!-- predgrid$dist2road<-apply(gDistance(spts2, roadsUTM, byid=TRUE), 2, min)/1000 -->
+<!-- predgrid$dist2road<-ifelse(predgrid$dist2road>10, 10, predgrid$dist2road) -->
+<!-- ``` -->
 
 ```{r}
 quilt.plot(analysisdat$x.pos, analysisdat$y.pos, analysisdat$dist2road, nrow=170, ncol=77, asp=1)
@@ -173,6 +266,21 @@ points(analysisdat$x.pos[analysisdat$response==1], analysisdat$y.pos[analysisdat
 
 ### rainfall
 
+
+<!-- ```{r} -->
+<!-- if(computer=='pc'){ -->
+<!-- rainfall<-read.csv('C:\\Users\\lindesay\\Documents\\EtoshaShapefiles\\Rainfall_DailMonth_ENP 2017Complete.csv')[,1:11] -->
+<!-- }else{ -->
+<!--   rainfall<-read.csv('/Users/lass/Documents/Etosha/Daily Rainfall/Rainfall_DailMonth_ENP 2017  Complete.csv')[,1:11] -->
+<!-- } -->
+<!-- require(dplyr) -->
+<!-- # only take the NA's - these are annual totals. -->
+<!-- # a year is considered july to june -->
+<!-- seasonalrainfall<-filter(rainfall, is.na(Year)) %>% mutate(yearid=1:n()) %>% filter(yearid>=55) -->
+<!-- # this gives us  -->
+<!-- ``` -->
+
+<!-- Spatial sites (annual rainfall). Rainfall data from seasons 99/00 to 16/17.   -->
 
 ```{r}
 rainfall2<-read.csv('../data/Fieldrainfall1983to2015.csv')[1:156,]
@@ -196,7 +304,56 @@ sputm <- SpatialPoints(cbind(rainfall2$E..X., rainfall2$S..Y.), proj4string=CRS(
 quilt.plot(rainfall2$x.pos , rainfall2$y.pos , rainfall2$meanrain)
 ```
 
+<!-- Either interpolate (within the study area) the rainfall data to each of the data points (carcass locations) or take the value of the nearest gauge if the location is beyond the convex hull of the rain gauge locations.  -->
 
+<!-- ```{r} -->
+<!-- raingaugedist<-makeDists(cbind(datcomb$x.pos, datcomb$y.pos), knotcoords = cbind(rainfall2$x.pos, rainfall2$y.pos),knotmat = FALSE) -->
+<!-- minraindists<-apply(raingaugedist$dataDist, 1, min) -->
+<!-- require(akima) -->
+<!-- datcomb$meanrain<-interpp(rainfall2$x.pos, rainfall2$y.pos, rainfall2$meanrain, datcomb$x.pos, datcomb$y.pos, duplicate="mean",linear=TRUE, extrap=TRUE, jitter.random=TRUE)$z -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- ids<-which(is.na(datcomb$meanrain)) -->
+<!-- gaugeid<-vector(length=length(ids)) -->
+<!-- for(i in 1:length(ids)){ -->
+<!--   gaugeid[i]<-which(raingaugedist$dataDist[ids[i],]==minraindists[ids[i]]) -->
+<!-- } -->
+<!-- datcomb$meanrain[ids]<-rainfall2$meanrain[gaugeid] -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- quilt.plot(datcomb$x.pos , datcomb$y.pos , datcomb$meanrain) -->
+<!-- points(rainfall2$x.pos, rainfall2$y.pos, pch=20) -->
+<!-- points(datcomb$x.pos, datcomb$y.pos) -->
+<!-- ``` -->
+
+<!-- Repeat the process for the prediction grid.  -->
+
+<!-- ```{r} -->
+<!-- raingaugedist<-makeDists(cbind(predgrid$x.pos, predgrid$y.pos), knotcoords = cbind(rainfall2$x.pos, rainfall2$y.pos),knotmat = FALSE) -->
+<!-- minraindists<-apply(raingaugedist$dataDist, 1, min) -->
+<!-- require(akima) -->
+<!-- predgrid$meanrain<-interpp(rainfall2$x.pos, rainfall2$y.pos, rainfall2$meanrain, predgrid$x.pos, predgrid$y.pos, duplicate="mean",linear=TRUE, extrap=TRUE)$z -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- ids<-which(is.na(predgrid$meanrain)) -->
+<!-- gaugeid<-vector(length=length(ids)) -->
+<!-- for(i in 1:length(ids)){ -->
+<!--   gaugeid[i]<-which(raingaugedist$dataDist[ids[i],]==minraindists[ids[i]]) -->
+<!-- } -->
+<!-- predgrid$meanrain[ids]<-rainfall2$meanrain[gaugeid] -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- quilt.plot(predgrid$x.pos , predgrid$y.pos , predgrid$meanrain) -->
+<!-- points(rainfall2$x.pos, rainfall2$y.pos, pch=20) -->
+<!-- #points(predgrid$x.pos, predgrid$y.pos) -->
+<!-- ``` -->
 
 ```{r}
 require(mgcv)
@@ -217,6 +374,12 @@ quilt.plot(analysisdat$x.pos , analysisdat$y.pos , preds, nrow=170, ncol=77, asp
 quilt.plot(rainfall2$x.pos , rainfall2$y.pos , rainfall2$meanrain-fitted(fit), asp=1)
 ```
 
+<!-- repeat for prediction grid: -->
+
+<!-- ```{r} -->
+<!-- preds2<-predict(object = fit, newdata=data.frame(x.pos=predgrid$x.pos, y.pos=predgrid$y.pos)) -->
+<!-- predgrid$meanrain<-preds2 -->
+<!-- ``` -->
 
 ```{r}
 rainplot<- ggplot() + geom_tile(data=filter(analysisdat, response==0), aes(x=x.pos, y=y.pos, fill=meanrain), alpha=1, height = 2, width=2) +
@@ -256,6 +419,46 @@ grid.arrange(waterplot, roadplot, rainplot, nrow=3)
 dev.off()
 ```
 
+<!-- ```{r} -->
+<!-- png('texgraphs/rainfall_estdata.png', height=1200, width=2000, res=300) -->
+<!-- ggplot()  + geom_tile(data=filter(analysisdat, response==0), aes(x=x.pos, y=y.pos, fill=meanrain), alpha=1, height = 2, width=2) + -->
+<!--   theme_bw() + -->
+<!--   labs(x='Easting (Km)', y='Northing (Km)') + -->
+<!--   scale_fill_gradient(low='lightblue', high='darkblue', name='Annual\nRainfall (mm)')+ -->
+<!--   geom_polygon(data=data.frame(largepan), aes(x=x, y=y), fill='lightyellow')+ -->
+<!--   geom_path(data=fences_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.5)+ -->
+<!--   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ coord_equal() -->
+<!-- dev.off() -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- png('texgraphs/rainfall_observed.png', height=1200, width=2000, res=300) -->
+<!-- ggplot() + geom_tile(data=rainfall2, aes(x=x.pos/1000, y=y.pos/1000, fill=meanrain), alpha=1, height=3, width=3) + -->
+<!--   theme_bw() + -->
+<!--   labs(x='Easting (Km)', y='Northing (Km)') + -->
+<!--   scale_fill_gradient(low='lightblue', high='darkblue', name='Annual\nRainfall (mm)')+ -->
+<!--   geom_polygon(data=data.frame(largepan), aes(x=x/1000, y=y/1000), fill='lightyellow')+ -->
+<!--   geom_path(data=fences_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.5)+ -->
+<!--   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ coord_equal() -->
+<!-- dev.off() -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- png('texgraphs/rainfall_residual.png', height=1200, width=2000, res=300) -->
+<!-- ggplot() + geom_tile(data=rainfall2, aes(x=x.pos/1000, y=y.pos/1000, fill=meanrain-fitted(fit)), alpha=1, height=3, width=3) + -->
+<!--   theme_bw() + -->
+<!--   labs(x='Easting (Km)', y='Northing (Km)') + -->
+<!--   scale_fill_gradient2(low='blue', mid='green', high='red', name='Residual\nRainfall (mm)')+ -->
+<!--   geom_polygon(data=data.frame(largepan), aes(x=x/1000, y=y/1000), fill='lightyellow')+ -->
+<!--   geom_path(data=fences_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.5)+ -->
+<!--   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ coord_equal() -->
+<!-- dev.off() -->
+<!-- ``` -->
+
+
+```{r}
+#datcomb$anthrax<-ifelse(datcomb$code=='ANP' | datcomb$code=='ANS', 1, 0)
+```
 
 
 # 1D Analysis
@@ -284,7 +487,7 @@ analysisdat$y <- analysisdat$response/analysisdat$pp.wts
 initialModel<- glm(response/pp.wts ~ 1 + nearwater, family='poisson', data=analysisdat, weights=pp.wts)
 ```
 
-
+<!-- Fit an initial model using the Binomial family, then add smooth terms (B-splines) for the distance to the nearest waterhole and the mean annual rainfall.  -->
 
 Distance to water removed owing to estimation issues.
 
@@ -296,6 +499,7 @@ salsa1dlist<-list(fitnessMeasure='BIC',
                   maxKnots_1d=c(3,3), 
                   degree=c(2,2), 
                   gaps=c(0,0),
+                  splines=c("bs", "bs"),
                   modelType='pointProcess')
 ```
 
@@ -372,7 +576,9 @@ p4<-ggplot() +
   geom_point(data=plotdata, aes(x=as.factor(variable), y=preds)) +
   geom_segment(data=plotdata, aes(x=as.factor(variable), y=lower, yend=upper, xend=as.factor(variable)), colour='red') + 
   xlab(names(predict1dmeans)[i]) + ylab('Intensity') + theme_bw()
- 
+  #geom_rug(data=analysisdat[analysisdat$response==0,], aes(" , names(predict1dmeans)[i], "), sides='b') + 
+  #geom_rug(data=analysisdat[analysisdat$response==1,], aes(",names(predict1dmeans)[i], "), sides = 't')
+
 
 ```
 
@@ -395,13 +601,13 @@ dev.off()
 
 ```{r}
 require(latex2exp)
-png('../results/mike_analysis1D_partials_rain.png', width=1000, res=300, height=600)
+jpeg('../results/Figure8.png', width=1000, res=300, height=600)
 p3 + xlab("Mean Annual Rainfall (mm)")
 dev.off()
-png('../results/mike_analysis1D_partials_roads.png', width=1000, res=300, height=600)
+jpeg('../results/Figure7.png', width=1000, res=300, height=600)
 p2 + xlab("Distance to Roads (Km)")
 dev.off()
-png('../results/mike_analysis1D_partials_water.png', width=1000, res=300, height=600)
+jpeg('../results/Figure6.png', width=1000, res=300, height=600)
 p4 + scale_x_discrete(name ="Distance to Waterholes", 
                     limits=c("1","0"),
                     labels=c("<3km", "3km +"))
@@ -410,7 +616,7 @@ dev.off()
 
 ```{r}
 analysisdat$preds1D<-fitted(salsa1doutput$bestModel)
-
+  #predict.gamMRSea(object = salsa1doutput$bestModel, newdata=predgrid, type='response')
 ```
 
 ```{r}
@@ -418,7 +624,7 @@ png('../results/mikeanalysis1D_risk_roads.png', height=900, width=2000, res=300)
 ggplot() + 
   geom_tile(data=filter(analysisdat, response==0), aes(x=x.pos, y=y.pos, fill=preds1D), height=2, width=2) +
   #scale_fill_distiller(palette = "Spectral",name="Intensity", limits=c(0, 0.67)) +
-  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 0.35)) +
+  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 0.91)) +
   coord_equal() + 
   theme_bw() +
   geom_point(data=filter(analysisdat, response==1), aes(x=x.pos, y=y.pos), shape=1, alpha=1/5)+
@@ -434,7 +640,7 @@ png('../results/mikeanalysis1D_risk_roads_nopoints.png', height=900, width=2000,
 ggplot() + 
   geom_tile(data=filter(analysisdat, response==0), aes(x=x.pos, y=y.pos, fill=preds1D), height=2, width=2) +
   #scale_fill_distiller(palette = "Spectral",name="Intensity", limits=c(0, 0.67)) +
-  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 0.35)) +
+  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 0.91)) +
   coord_equal() + 
   theme_bw() +
 #  geom_point(data=filter(analysisdat, response==1), aes(x=x.pos, y=y.pos), shape=1, alpha=1/5)+
@@ -445,7 +651,22 @@ ggplot() +
 dev.off()
 ```
 
-
+<!-- ```{r} -->
+<!-- png('texgraphs/mikeanalysis1D_risk_roads_nopoints.png', height=900, width=2000, res=300) -->
+<!-- ggplot() + geom_tile(data=filter(analysisdat, response==0), aes(x=x.pos, y=y.pos, fill=preds1D), height=2, width=2) + -->
+<!--   theme_bw() + -->
+<!--   labs(x='Easting (Km)', y='Northing (Km)') + -->
+<!--   scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity') + -->
+<!--  # geom_point(aes(x=x.pos, y=y.pos, colour='response'), alpha=0.5, data=filter(analysisdat, response==1), size=0.9) + -->
+<!--   scale_color_manual(values=c('red'), guide=FALSE) +  -->
+<!--   coord_equal() + -->
+<!--   geom_polygon(data=data.frame(largepan), aes(x=x, y=y), fill='lightblue')+ -->
+<!--   #geom_path(data=fences_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='darkgrey', size=0.5)+ -->
+<!--   geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.3, alpha=0.5) +  -->
+<!--   #geom_point(data=waterholelocs, aes(x=coords.x1/1000, y=coords.x2/1000 ),shape=10, col='cyan3', alpha=0.7)+ -->
+<!--   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) -->
+<!-- dev.off() -->
+<!-- ``` -->
 
 
 ```{r}
@@ -458,6 +679,12 @@ anovatab$`Pr(>Chisq)`
 
 ```{r}
 anova(salsa1doutput$bestModel)
+```
+
+
+
+```{r}
+#BIC(salsa1doutput$bestModel)
 ```
 
 
@@ -489,6 +716,14 @@ summary(salsa2dOutput$bestModel)
 ```
 
 ```{r}
+ ll<-sum(analysisdat$pp.wts * (((analysisdat$response/analysisdat$pp.wts) * log(fitted(salsa2dOutput$bestModel))) - fitted(salsa2dOutput$bestModel)))
+
+ll
+
+(-2*ll) + (log(nrow(analysisdat)) * length(coef(salsa2dOutput$bestModel)))
+```
+
+```{r}
 quilt.plot(analysisdat$x.pos[analysisdat$response==0],
            analysisdat$y.pos[analysisdat$response==0], 
            fitted(salsa2dOutput$bestModel)[analysisdat$response==0], 
@@ -500,16 +735,24 @@ quilt.plot(analysisdat$x.pos[analysisdat$response==0],
 
 # Outputs:
 
+```{r}
+#predgrid<-read.csv(file='data/predgrid.csv')
+#load('data/pred2knotDist.Robj') # object called p2k
+#p2k<-makeDists(cbind(predgrid$x.pos, predgrid$y.pos), kg, knotmat = FALSE)$dataDist
+# remove duplicated knots
+#p2k<-p2k[,-which(duplicated(datcomb[,5:6])==TRUE)]
+```
 
 ```{r}
-analysisdat$preds2D<-fitted(salsa2dOutput$bestModel)  ```
+analysisdat$preds2D<-fitted(salsa2dOutput$bestModel)  #predict.gamMRSea(object = salsa2dOutput$bestModel, newdata=predgrid, g2k=p2k, type='response')
+```
 
 ```{r}
 png('../results/mikeanalysis_risk_roads.png', height=900, width=2000, res=300)
 ggplot() + 
   geom_tile(data=filter(analysisdat, response==0), aes(x=x.pos, y=y.pos, fill=preds2D), height=2, width=2) +
   #scale_fill_distiller(palette = "Spectral",name="Intensity", limits=c(0, 0.67)) +
-  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 0.68)) +
+  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 1.6)) +
   coord_equal() + 
   theme_bw() +
   geom_point(data=filter(analysisdat, response==1), aes(x=x.pos, y=y.pos), shape=1, alpha=1/5)+
@@ -523,17 +766,19 @@ dev.off()
 
 ```{r}
 png('../results/mikeanalysis_risk_roads_nopoints.png', height=900, width=2000, res=300)
-ggplot() + 
+riskroads_nopoints <- ggplot() + 
   geom_tile(data=filter(analysisdat, response==0), aes(x=x.pos, y=y.pos, fill=preds2D), height=2, width=2) +
   #scale_fill_distiller(palette = "Spectral",name="Intensity", limits=c(0, 0.67)) +
-  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 0.68)) +
+  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 1.5)) +
   coord_equal() + 
   theme_bw() +
   #geom_point(data=filter(analysisdat, response==1), aes(x=x.pos, y=y.pos), shape=1, alpha=1/5)+
   geom_polygon(data=data.frame(largepan), aes(x=x, y=y), fill='lightblue')+
   geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.3, alpha=0.2)+
    geom_point(data=waterholelocs/1000, aes(coords.x1, coords.x2), colour = 'blue',shape=4, alpha=1/2) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + xlab('Easting (km)') + ylab("Northing (km)")
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + xlab('Easting (km)') + ylab("Northing (km)") +
+  labs(tag="(a)")
+riskroads_nopoints
 dev.off()
 ```
 
@@ -558,16 +803,19 @@ png('../results/mikeanalysis_risk_roads_zoom2D.png', height=900, width=1300, res
 z2<-ggplot() + 
   geom_tile(data=filter(analysisdat, response==0), aes(x=x.pos, y=y.pos, fill=preds2D), height=2, width=2) +
   #scale_fill_distiller(palette = "Spectral",name="Intensity", limits=c(0, 0.67)) +
-  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 0.68)) + 
+  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 2.83)) + 
   theme_bw() +
   geom_point(data=filter(analysisdat, response==1), aes(x=x.pos, y=y.pos), shape=1, alpha=1/5)+
   geom_polygon(data=data.frame(largepan), aes(x=x, y=y), fill='lightblue')+
   geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.3, alpha=0.2)+
    geom_point(data=waterholelocs/1000, aes(coords.x1, coords.x2), colour = 'blue',shape=4, alpha=1/2) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + xlab('Easting (km)') + ylab("Northing (km)") +
-    scale_y_continuous(limits=c(-2100, -2030)) + 
+    scale_y_continuous(limits=c(-2100, -2020)) + 
     scale_x_continuous(limits=c(660, 740))+
-  coord_equal()
+  coord_equal() +
+  annotate("text", x=695, y=-2020, label= "Model 2, 1D and 2D terms") + 
+  labs(tag="(b)")
+  
 z2
 dev.off()
 ```
@@ -577,16 +825,18 @@ png('../results/mikeanalysis_risk_roads_zoom1D.png', height=900, width=1300, res
 z1 <- ggplot() + 
   geom_tile(data=filter(analysisdat, response==0), aes(x=x.pos, y=y.pos, fill=preds1D), height=2, width=2) +
   #scale_fill_distiller(palette = "Spectral",name="Intensity", limits=c(0, 0.67)) +
-  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 0.35)) + 
+  scale_fill_gradient(low='lightgrey', high='darkred', name='Intensity', limits=c(0, 0.6)) + 
   theme_bw() +
   geom_point(data=filter(analysisdat, response==1), aes(x=x.pos, y=y.pos), shape=1, alpha=1/5)+
   geom_polygon(data=data.frame(largepan), aes(x=x, y=y), fill='lightblue')+
   geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.3, alpha=0.2)+
    geom_point(data=waterholelocs/1000, aes(coords.x1, coords.x2), colour = 'blue',shape=4, alpha=1/2) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + xlab('Easting (km)') + ylab("Northing (km)") +
-    scale_y_continuous(limits=c(-2100, -2030)) + 
+    scale_y_continuous(limits=c(-2100, -2020)) + 
     scale_x_continuous(limits=c(660, 740))+
-  coord_equal()
+  coord_equal() +
+  annotate("text", x=690, y=-2020, label= "Model 1, 1D terms only") + 
+  labs(tag="(a)")
 z1
 dev.off()
 ```
@@ -596,6 +846,7 @@ png('../results/mikeanalysis_risk_roads_zoom1d2d.png', height=800, width=1900, r
 grid.arrange(z1, z2, ncol=2)
 dev.off()
 ```
+
 ```{r}
 library(viridis)
 plotknots<-kg[salsa2dOutput$bestModel$splineParams[[1]]$knotPos,]
@@ -606,7 +857,7 @@ modknots<-ggplot() +
   geom_point(data=plotknots,
              aes(x=x.pos, y=y.pos,colour=coefsign, size=radii), alpha=1/2) +
   theme_bw() + coord_equal() +
-  labs(x='Easting (Km)', y='Northing (Km)') +
+  labs(x='Easting (km)', y='Northing (km)') +
   geom_point(data=filter(analysisdat, response==1), aes(x=x.pos, y=y.pos), alpha=1/5, size=0.5) +
   geom_point(data=waterholelocs/1000, aes(coords.x1, coords.x2), colour = 'blue',shape=4, alpha=1/2) +
   geom_polygon(data=data.frame(largepan), aes(x=x, y=y), fill='lightblue')+
@@ -615,10 +866,25 @@ modknots<-ggplot() +
    geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.3, alpha=0.2)+
   scale_size(guide=FALSE) +
   scale_color_viridis(discrete=TRUE) +
-  guides(colour="none") 
+  guides(colour="none") +
+  labs(tag="(c)" , caption = "Yellow dots = positive coefficient, purple dots = negative coefficient. \nThe size of the coloured dots is proportional to the size of r")
   
 png('../results/mikeanalysis_salsaknots.png', height=900, width=1500, res=300)
 modknots
+dev.off()
+```
+
+```{r}
+library(patchwork)
+design <- c(
+  area(1, 1, 3, 3),
+  area(1, 4, 3, 6),
+  area(4, 1, 6, 6)
+)
+z1 + z2 + modknots + plot_layout(design=design)
+
+jpeg('../results/Figure10.jpg',  height=2000, width=2500, res=300)
+z1 + z2 + modknots + plot_layout(design=design)
 dev.off()
 ```
 
@@ -628,7 +894,7 @@ riskdat<-analysisdat %>% filter(response==0) %>%
   mutate(preds2D_risk = as.factor(ifelse(preds2D>quantile(riskdat$preds2D, probs=0.95), 1, 0)))
 
 png('../results/mikeanalysis_risk_roads_risk.png', height=900, width=2000, res=300)
-z1 <- ggplot() + 
+roads_risk <- ggplot() + 
   geom_tile(data=riskdat, aes(x=x.pos, y=y.pos, fill=preds2D_risk), alpha=1/3, height=2, width=2) +
   #scale_fill_distiller(palette = "Spectral",name="Intensity", limits=c(0, 0.67)) +
  scale_fill_viridis_d(direction = -1, name='Risk Areas') +
@@ -638,10 +904,38 @@ z1 <- ggplot() +
   geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.3, alpha=0.2)+
    geom_point(data=waterholelocs/1000, aes(coords.x1, coords.x2), colour = 'blue',shape=4, alpha=1/2) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + xlab('Easting (km)') + ylab("Northing (km)") +
-  coord_equal()
-z1
+  coord_equal() + 
+  labs(tag="(b)")
+roads_risk
 dev.off()
 ```
+
+```{r}
+jpeg('../results/Figure9.jpg', height=1800, width=2200, res=300)
+riskroads_nopoints/roads_risk
+dev.off()
+```
+
+
+<!-- ```{r} -->
+<!-- png('texgraphs/mikeanalysis_risk_roads_nopoints.png', height=900, width=2000, res=300) -->
+<!-- ggplot() +  -->
+<!--   geom_polygon(data=data.frame(largepan), aes(x=x, y=y), fill='lightblue')+ -->
+<!--   geom_tile(data=filter(analysisdat, response==0), aes(x=x.pos, y=y.pos, fill=preds), height=2, width=2) + -->
+<!--   theme_bw() + -->
+<!--   labs(x='Easting (Km)', y='Northing (Km)') + -->
+<!--   scale_fill_gradient(low='white', high='darkred', name='Intensity') + -->
+<!--   #geom_point(aes(x=x.pos, y=y.pos, colour='response'), alpha=0.5, data=filter(analysisdat, response==1), size=0.9) + -->
+<!--   scale_color_manual(values=c('red'), guide=FALSE) +  -->
+<!--   coord_equal() + -->
+
+<!--   #geom_path(data=fences_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='darkgrey', size=0.5)+ -->
+<!--   geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.3, alpha=0.5) +  -->
+<!--   #geom_point(data=waterholelocs, aes(x=coords.x1/1000, y=coords.x2/1000 ),shape=10, col='cyan3', alpha=0.7)+ -->
+<!--   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) -->
+<!-- dev.off() -->
+<!-- ``` -->
+
 
 ```{r}
 require(car)
@@ -653,12 +947,294 @@ anovatab$`Pr(>Chisq)`
 
 
 ```{r}
- ll<-sum(analysisdat$pp.wts * (((analysisdat$response/analysisdat$pp.wts) * log(fitted(salsa2dOutput$bestModel))) - fitted(salsa2dOutput$bestModel)))
-
-ll
-
-(-2*ll) + (log(nrow(analysisdat)) * length(coef(salsa2dOutput$bestModel)))
+# BIC(salsa2dOutput$bestModel)
+# set.seed(1)
+# getPPCV(salsa2dOutput$bestModel,salsa2dOutput$bestModel$splineParams[[1]] $dist)$cv
 ```
 
 
+
+
+<!-- ```{r} -->
+<!-- runPartialPlots(salsa2dOutput$bestModel, data=datcomb, varlist.in = varlist, showKnots=TRUE,save = TRUE, savedata = TRUE) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- load('results/PartialData_dist2road.RData') -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- p_roads<-ggplot(partialdata) + geom_line(aes(x=newX/1000, y=partialfit)) + theme_bw() + geom_ribbon(aes(x=newX/1000, ymin=cis...1., ymax=cis...2.), fill='red', alpha=1/5) + xlab('Distance to Roads (Km)') + ylab('Partial Fit (P(death))') -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- load('results/PartialData_distwater_m.RData') -->
+<!-- partialwater<-partialdata -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- p_water<-ggplot(partialwater) + geom_line(aes(x=newX/1000, y=partialfit)) + theme_bw() + geom_ribbon(aes(x=newX/1000, ymin=cis...1., ymax=cis...2.), fill='red', alpha=1/5) + xlab('Distance to Waterholes (Km)') + ylab('Partial Fit (P(death))') -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- load('results/PartialData_meanrain.RData') -->
+<!-- partialrain<-partialdata -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- p_rain<-ggplot(partialrain) + geom_line(aes(x=newX, y=partialfit)) + theme_bw() + geom_ribbon(aes(x=newX, ymin=cis...1., ymax=cis...2.), fill='red', alpha=1/5) + xlab('Mean Annual Rainfall (mm)') + ylab('Partial Fit (P(death))') -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- library(gridExtra) -->
+<!-- png('texgraphs/mike_analysis_partials.png') -->
+<!-- grid.arrange(p_water, p_roads, p_rain) -->
+<!-- dev.off() -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- png('texgraphs/mike_analysis_partials_rain.png', width=1000) -->
+<!-- p_rain -->
+<!-- dev.off() -->
+<!-- png('texgraphs/mike_analysis_partials_roads.png', width=1000) -->
+<!-- p_roads -->
+<!-- dev.off() -->
+<!-- png('texgraphs/mike_analysis_partials_water.png', width=1000) -->
+<!-- p_water -->
+<!-- dev.off() -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- auc.cv<-function(response, predictions){ -->
+<!--   if(class(predictions)=="matrix"){ -->
+<!--     predictions<-as.vector(predictions) -->
+<!--   } -->
+<!--   g_partial <- roc(response,predictions) -->
+<!--   1-g_partial$auc -->
+<!-- } -->
+<!-- require(pROC) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- cvs<-replicate(100, cv.gamMRSea(datcomb, salsa2dOutput$bestModel, K=10, cost=auc.cv, replicate = TRUE)$delta[2]) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- quantile(cvs, probs=c(0.025, 0.5, 0.975)) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- cvs1D<-replicate(100, cv.gamMRSea(datcomb, salsa1doutput$bestModel, K=10, cost=auc.cv, replicate = TRUE)$delta[2]) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- quantile(cvs1D, probs=c(0.025, 0.5, 0.975)) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- require(caret) -->
+<!-- g <- roc(datcomb$response,fitted(salsa2dOutput$bestModel)) -->
+<!-- df<-data.frame(t(coords(g, seq(0,1,0.01)))) -->
+<!-- best<-coords(g, "best") -->
+<!-- best -->
+
+<!-- datcomb$prediction_final=ifelse(fitted(salsa2dOutput$bestModel)>=best[1],1,0) -->
+<!-- confusionMatrix(reference=as.factor(datcomb$response), data=as.factor(datcomb$prediction_final), positive="1") -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- predgrid$preds<-preds -->
+<!-- predgrid$preds01<-ifelse(predgrid$preds>best[1], 1, 0) -->
+
+<!-- #quilt.plot(predgrid$x.pos, predgrid$y.pos, predgrid$preds) -->
+<!-- #quilt.plot(predgrid$x.pos, predgrid$y.pos, predgrid$preds01, nrow=98, ncol=98) -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- png('texgraphs/mikeanalysis_risk_roads_nopoints_01.png', height=900, width=2000, res=300) -->
+<!-- ggplot() + geom_raster(data=predgrid, aes(x=x.pos/1000, y=y.pos/1000, fill=preds01), alpha=1) + -->
+<!--   theme_bw() + -->
+<!--   labs(x='Easting (Km)', y='Northing (Km)') + -->
+<!--   scale_fill_gradient(low='lightgrey', high='darkred', guide = FALSE)+ -->
+<!--   #geom_point(aes(x=x.pos/1000, y=y.pos/1000, group=as.factor(death), colour=as.factor(death)), alpha=0.5, data=datcomb)+ -->
+<!--   scale_color_manual(values=c('darkgrey', 'red'), guide=FALSE) + coord_equal()+ -->
+<!--   geom_polygon(data=data.frame(largepan), aes(x=x/1000, y=y/1000), fill='lightblue')+ -->
+<!--   #geom_path(data=fences_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='darkgrey', size=0.5)+ -->
+<!--   geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.3, alpha=0.5) +  -->
+<!--   geom_point(data=waterholelocs, aes(x=coords.x1/1000, y=coords.x2/1000 ),shape=10, col='cyan3', alpha=0.7, size=1)+ -->
+<!--   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) -->
+<!-- dev.off() -->
+<!-- ``` -->
+
+
+
+
+
+<!-- # Anthrax analysis -->
+
+```{r}
+deathid<-which(datcomb$death==1)
+anthraxdata<-filter(datcomb, death==1)
+anthraxdata$anthrax<-ifelse(anthraxdata$code=='ANP' | anthraxdata$code=='ANS', 1, 0)
+anthraxdata$response<-anthraxdata$anthrax
+```
+
+<!-- dist2road in initial model? -->
+<!-- ```{r} -->
+<!-- initialModelanthrax<- glm(response ~ 1, family='binomial', data=anthraxdata) -->
+<!-- ``` -->
+
+<!-- Fit an initial model using the Binomial family, then add smooth terms (B-splines) for the distance to the nearest waterhole and the mean annual rainfall.  -->
+
+<!-- ```{r 1dmodelanthrax, cache=TRUE, eval=FALSE} -->
+<!-- varlist<-c( 'dist2road','meanrain','distwater_m') -->
+<!-- salsa1dlist<-list(fitnessMeasure='BIC', startKnots_1d=c(1,1,1), minKnots_1d=c(1,1,1), maxKnots_1d=c(5,5,5), degree=c(2,2,2), gaps=c(0,0,0)) -->
+<!-- salsa1doutput<-runSALSA1D(initialModelanthrax, salsa1dlist, varlist, predictionData = predgrid, datain = anthraxdata, suppress.printout = TRUE, removal=TRUE) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- BIC(salsa1doutput$bestModel) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- anova(salsa1doutput$bestModel) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- summary(salsa1doutput$bestModel) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- runPartialPlots(salsa1doutput$bestModel, anthraxdata, varlist.in = varlist, showKnots = TRUE) -->
+<!-- ``` -->
+
+<!-- ```{r } -->
+<!-- # subset distance matrix -->
+<!-- kganth<-  cbind(datcomb$x.pos, datcomb$y.pos) -->
+<!-- kganth<- kganth[deathid,] -->
+<!-- duplicatedid<-which(duplicated(kganth)==TRUE) -->
+<!-- kganth<-kganth[-duplicatedid,] -->
+
+<!-- load('data/knot2knotDist.Robj') -->
+<!-- d2k<-k2k[deathid, deathid] -->
+<!-- d2k<-d2k[,-duplicatedid] -->
+
+<!-- k2k<-k2k[deathid, deathid] -->
+<!-- k2k<-k2k[-duplicatedid, -duplicatedid] -->
+
+<!-- distMats_Geo_anthrax<-list(dataDist= d2k, knotDist=k2k) -->
+<!-- ``` -->
+
+<!-- ```{r 2dmodelanthrax, cache=TRUE, eval=FALSE} -->
+<!-- salsa2dlist<-list(fitnessMeasure = 'BIC', knotgrid = kganth, startKnots=20, minKnots=2, maxKnots=60) -->
+
+<!-- salsa2dOutputanthrax<-runSALSA2D(salsa1doutput$bestModel, salsa2dlist, d2k=distMats_Geo_anthrax$dataDist, k2k=distMats_Geo_anthrax$knotDist, splineParams=NULL,suppress.printout = TRUE, chooserad = FALSE, basis = 'exponential') -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- summary(salsa2dOutputanthrax$bestModel) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- #predgrid<-read.csv(file='data/predgrid.csv') -->
+<!-- load('data/pred2knotDist.Robj') # object called p2k -->
+<!-- # remove duplicated knots -->
+<!-- p2k<-p2k[,deathid] -->
+<!-- p2k<-p2k[,-duplicatedid] -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- preds_anthrax<-predict.gamMRSea(object = salsa2dOutputanthrax$bestModel, newdata=predgrid, g2k=p2k, type='response') -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- png('texgraphs/anthraxanalysis_risk_roads.png', height=300, width=600) -->
+<!-- ggplot() + geom_raster(data=predgrid, aes(x=x.pos/1000, y=y.pos/1000, fill=preds_anthrax), alpha=1) + -->
+<!--   theme_bw() + -->
+<!--   labs(x='Easting (Km)', y='Northing (Km)') + -->
+<!--   scale_fill_gradient(low='lightgrey', high='darkred', name='P(Anthrax)')+ -->
+<!--   geom_point(aes(x=x.pos/1000, y=y.pos/1000, group=as.factor(anthrax), colour=as.factor(anthrax)), alpha=0.5, data=anthraxdata)+ -->
+<!--   scale_color_manual(values=c('darkgrey', 'red'), guide=FALSE) + coord_equal()+ -->
+<!--   geom_polygon(data=data.frame(largepan), aes(x=x/1000, y=y/1000), fill='lightblue')+ -->
+<!--   #geom_path(data=fences_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='darkgrey', size=0.5)+ -->
+<!--   geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.2, alpha=0.5) +  -->
+<!--   geom_point(data=waterholelocs, aes(x=coords.x1/1000, y=coords.x2/1000 ),shape=10, col='cyan3', alpha=0.7) -->
+<!-- dev.off() -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- png('texgraphs/anthraxanalysis_risk_roads_nopoints.png', height=300, width=600) -->
+<!-- ggplot() + geom_raster(data=predgrid, aes(x=x.pos/1000, y=y.pos/1000, fill=preds/sum(preds)), alpha=1) + -->
+<!--   theme_bw() + -->
+<!--   labs(x='Easting (Km)', y='Northing (Km)') + -->
+<!--   scale_fill_gradient(low='lightgrey', high='darkred', name='Risk')+ -->
+<!--   #geom_point(aes(x=x.pos/1000, y=y.pos/1000, group=as.factor(death), colour=as.factor(death)), alpha=0.5, data=datcomb)+ -->
+<!--   scale_color_manual(values=c('darkgrey', 'red'), guide=FALSE) + coord_equal()+ -->
+<!--   geom_polygon(data=data.frame(largepan), aes(x=x/1000, y=y/1000), fill='lightblue')+ -->
+<!--   #geom_path(data=fences_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='darkgrey', size=0.5)+ -->
+<!--   geom_path(data=roads_fortify, aes(x=long/1000, y=lat/1000, group=group), colour='black', size=0.2, alpha=0.5) +  -->
+<!--   geom_point(data=waterholelocs, aes(x=coords.x1/1000, y=coords.x2/1000 ),shape=10, col='cyan3', alpha=0.7, size=1) -->
+<!-- dev.off() -->
+<!-- ``` -->
+
+<!-- # Year analysis -->
+
+<!-- ```{r} -->
+<!-- yeardata<-filter(datcomb, death==1) %>% group_by(year) %>% summarise (response=n()) -->
+<!-- yeardata<-filter(yeardata, year<2016) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- yeardata$rain<-apply(rainfall2[,23:38], 2, mean, na.rm=TRUE) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- fit_year_rain<-glm(response ~ year + rain , family=quasipoisson, data=yeardata) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- summary(fit_year_rain) -->
+<!-- ``` -->
+
+<!-- Fit year only model, therefore can use year 2016. -->
+<!-- ```{r} -->
+<!-- yeardata<-filter(datcomb, death==1) %>% group_by(year) %>% summarise (response=n()) -->
+<!-- yeardata<-filter(yeardata, year<2017) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- fit_year<-glm(response ~ year , family=quasipoisson, data=yeardata) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- summary(fit_year) -->
+<!-- ``` -->
+
+<!-- Smoothing for either term is not significant. -->
+
+<!-- ```{r 1dmodel, cache=TRUE} -->
+<!-- varlist<-c('year') -->
+<!-- salsa1dlist<-list(fitnessMeasure='QBIC', startKnots_1d=c(1), minKnots_1d=c(1), maxKnots_1d=c(5), degree=c(2), gaps=c(0)) -->
+<!-- salsa1doutputyear<-runSALSA1D(initialModel, salsa1dlist, varlist, datain = yeardata, suppress.printout = TRUE) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- summary(salsa1doutputyear$bestModel) -->
+<!-- ``` -->
+
+<!-- # ```{r} -->
+<!-- # plot(yeardata$year, yeardata$response, xlab='Year', ylab='Number of Carcasses') -->
+<!-- # lines(yeardata$year, fitted(fit_year)) -->
+<!-- # ``` -->
+<!-- #  -->
+<!-- # Note that if 2016 is not included the year term is marginally significant. (pval=0.0355). -->
+<!-- #  -->
 
